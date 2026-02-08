@@ -136,12 +136,14 @@ unsigned int ContFramePool::n_frame_pools = 0;
 
 ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no)
 {
+    // 2 bits per frame, so 4 frames per char
     unsigned int bitmap_index = _frame_no / 4;
+    // a frame thta is a multiple of 4 will be at the first 2 bits of a char, and each frame after that will be at the next 2 bits, so we need to shift by 2 bits for each frame
     unsigned int shift = (_frame_no % 4) * 2;
+    // mask out the 2 bits that correspond to the frame
     unsigned char mask = 0x3 << shift;
-
+    // get the bits
     unsigned char state = (bitmap[bitmap_index] & mask) >> shift;
-
     switch (state)
     {
     case 0:
@@ -151,16 +153,20 @@ ContFramePool::FrameState ContFramePool::get_state(unsigned long _frame_no)
     case 2:
         return FrameState::HoS;
     default:
+        Console::puts("Invalid state in bitmap!\n");
         return FrameState::Free;
     }
 }
 
 void ContFramePool::set_state(unsigned long _frame_no, FrameState _state)
 {
+    // 2 bits per frame, so 4 frames per char
     unsigned int bitmap_index = _frame_no / 4;
+    // a frame thta is a multiple of 4 will be at the first 2 bits of a char, and each frame after that will be at the next 2 bits, so we need to shift by 2 bits for each frame
     unsigned int shift = (_frame_no % 4) * 2;
+    // mask out the 2 bits that correspond to the frame
     unsigned char mask = 0x3 << shift;
-
+    // clear the bits
     bitmap[bitmap_index] &= ~mask;
 
     switch (_state)
@@ -181,6 +187,7 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
                              unsigned long _info_frame_no)
 {
+    // cannot create a pool with more frames than we can manage with the info frames
     assert(_n_frames <= FRAME_SIZE * 4);
 
     base_frame_no = _base_frame_no;
@@ -236,6 +243,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames)
         }
         else
         {
+            // start over from the next frame
             free_frames = 0;
             hos_candidate = fno + 1;
         }
